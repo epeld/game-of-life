@@ -1,5 +1,15 @@
 module Main where
-import Histogram exposing (histogram, occurances)
+import Octagon exposing (..)
 import Html exposing (text)
 
-main = text "Hello, World!"
+import Svg exposing (..)
+import Svg.Attributes exposing (..)
+
+main = 
+    svg
+        [ width "10cm"
+        , height "10cm"
+        , viewBox "0 0 1 1" ]
+        [octagon (0.5, 0.5) 
+            [ fill "black" ]]
+    
