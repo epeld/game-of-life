@@ -5,6 +5,10 @@ type alias Point = (Float, Float)
 type alias Radians = Float
 
 
+string : List Point -> String
+string pts = join " " <| List.map show pts
+
+
 -- Split a full turn (2pi) into n parts
 splitTurn : Int -> List Radians
 splitTurn n = 
