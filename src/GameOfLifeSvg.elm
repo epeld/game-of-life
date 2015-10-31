@@ -14,7 +14,9 @@ import Box
 import Time exposing (every, second)
 
 
-type GUIUpdate = Highlight Cell | Toggle Cell | Logic Update
+type Action = Highlight Cell | Toggle Cell
+
+type GUIUpdate = GUI Action | Logic Update
 
 type alias GUIState = { generation : Generation, highlight : Maybe Cell }
 
@@ -23,32 +25,40 @@ timer = Signal.map (always (Logic Next)) (every second)
 signal : ClipBox -> GUIState -> Signal Svg.Svg
 signal b s = 
     let 
-        mailbox = Signal.mailbox (Highlight (0,0))
+        mailbox = Signal.mailbox (GUI <| Highlight (0,0))
         updates = Signal.merge timer mailbox.signal
         gui = Signal.foldp (update b) s updates
+        addr = Signal.forwardTo mailbox.address GUI
     in
-       Signal.map (toSvgScene mailbox.address b) gui
+       Signal.map (toSvgScene addr b) gui
 
 
 update : ClipBox -> GUIUpdate -> GUIState -> GUIState
 update b u s =
+    case u of
+        GUI a -> 
+            action b a s
+
+        Logic l -> 
+            { s | generation <- GameOfLife.update (Just b) l s.generation }
+
+
+action : ClipBox -> Action -> GUIState -> GUIState
+action b a s =
     let
-        b' = Just b
-        logic x = { s | generation <- GameOfLife.update b' x s.generation }
+        logic x = { s | generation <- GameOfLife.update (Just b) x s.generation }
     in
-        case u of
+        case a of
             Toggle c -> 
                 if GameOfLife.contains c s.generation 
                 then logic (Remove c)
                 else logic (Add c)
 
-            Logic u' -> logic u'
-
             Highlight c -> 
                 { s | highlight <- Just c }
 
 
-toSvgScene : Address GUIUpdate -> ClipBox -> GUIState -> Svg.Svg
+toSvgScene : Address Action -> ClipBox -> GUIState -> Svg.Svg
 toSvgScene a b {generation, highlight} = 
     let
         boxSvg = lazy2 boxToSvg a b
@@ -58,7 +68,7 @@ toSvgScene a b {generation, highlight} =
        Svg.svg [viewBox b] [boxSvg, genSvg, highlightSvg]
 
 
-generationToSvg : Address GUIUpdate -> Generation -> Svg.Svg
+generationToSvg : Address Action -> Generation -> Svg.Svg
 generationToSvg a gen = 
     let
         cells = GameOfLife.toCells gen
@@ -70,7 +80,7 @@ generationToSvg a gen =
        g [class "generation"] <| List.map (\x -> rect (pointify x) (atts x)) cells
 
 
-boxToSvg : Address GUIUpdate -> ClipBox -> Svg.Svg
+boxToSvg : Address Action -> ClipBox -> Svg.Svg
 boxToSvg a b = 
     let
         pts = Box.points b 
@@ -82,7 +92,7 @@ boxToSvg a b =
        g [class "box"] <| List.map (\x -> rect (pointify x) (atts x)) pts
 
 
-highlightToSvg : Address GUIUpdate -> Maybe Cell -> Svg.Svg
+highlightToSvg : Address Action -> Maybe Cell -> Svg.Svg
 highlightToSvg a h =
     let
         mpt = Maybe.map pointify h
