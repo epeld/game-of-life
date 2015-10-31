@@ -11,18 +11,21 @@ import Point
 import GameOfLife exposing (ClipBox, Generation, Cell, Update(..))
 import Polygon exposing (rect)
 import Box
+import Time exposing (every, second)
 
 
 type GUIUpdate = Highlight Cell | Toggle Cell | Logic Update
 
 type alias GUIState = { generation : Generation, highlight : Maybe Cell }
 
+timer = Signal.map (always (Logic Next)) (every second)
 
 signal : ClipBox -> GUIState -> Signal Svg.Svg
 signal b s = 
     let 
         mailbox = Signal.mailbox (Highlight (0,0))
-        gui = Signal.foldp (update b) s mailbox.signal
+        updates = Signal.merge timer mailbox.signal
+        gui = Signal.foldp (update b) s updates
     in
        Signal.map (toSvgScene mailbox.address b) gui
 
