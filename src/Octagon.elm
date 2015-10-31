@@ -4,7 +4,7 @@ import Point exposing (..)
 import Svg 
 import Svg.Attributes
 
-radius = 0.1
+radius = 0.5
 
 circle : Point -> List Svg.Attribute -> Svg.Svg
 circle (x,y) attrs = 
