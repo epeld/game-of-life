@@ -6,6 +6,18 @@ import Svg.Attributes
 
 radius = 0.1
 
+circle : Point -> List Svg.Attribute -> Svg.Svg
+circle (x,y) attrs = 
+    let
+        atts = [ Svg.Attributes.cx x'
+               , Svg.Attributes.cy y'
+               , Svg.Attributes.radius r' ]
+        x' = toString x
+        y' = toString y
+        r' = toString radius
+    in 
+        Svg.circle (List.append atts attrs) []
+
 
 octagon : Point -> List Svg.Attribute -> Svg.Svg
 octagon pt attrs = 
