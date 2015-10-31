@@ -1,68 +1,109 @@
 module GameOfLifeSvg where
 
-import Svg
-import Svg.Attributes
-import Maybe exposing (andThen, withDefault)
 import String
+import Svg exposing (g)
+import Svg.Lazy exposing (lazy2)
+import Svg.Attributes exposing (fill, class)
+import Svg.Events exposing (onClick, onMouseOver)
+import Signal exposing (Address)
 
 import Point
-import GameOfLife
+import GameOfLife exposing (ClipBox, Generation, Cell, Update(..))
 import Polygon exposing (rect)
+import Box
 
 
-signal : GameOfLife.Generation -> Signal a -> Signal Svg.Svg
-signal g s = Signal.map toSvgScene (GameOfLife.signal g s)
+type GUIUpdate = Highlight Cell | Toggle Cell | Logic Update
+
+type alias GUIState = { generation : Generation, highlight : Maybe Cell }
 
 
-toSvgScene : GameOfLife.Generation -> Svg.Svg
-toSvgScene g = Svg.svg [viewBox g] (toSvg g)
-
-
-toSvg : GameOfLife.Generation -> List Svg.Svg
-toSvg g = 
-    let
-        pts = pointifyAll g
-        svg x = rect x [cellClass x]
-        --svg x = polygon 8 x [Svg.Attributes.class (String.append "cell" <| Point.string [x])]
-    in 
-        List.map svg pts
-
-cellClass : Point.Point -> Svg.Attribute
-cellClass x = 
-    let
-        name = String.append "cell" <| Point.string [x]
+signal : ClipBox -> GUIState -> Signal Svg.Svg
+signal b s = 
+    let 
+        mailbox = Signal.mailbox (Highlight (0,0))
+        gui = Signal.foldp (update b) s mailbox.signal
     in
-        Svg.Attributes.class name
+       Signal.map (toSvgScene mailbox.address b) gui
 
 
-viewBox g = 
+update : ClipBox -> GUIUpdate -> GUIState -> GUIState
+update b u s =
     let
-        box = enlarge 4.2 <| List.map toFloat <| withDefault [0, 0, 10, 10] (boundingBox g) 
-        boxString = String.join " " <| List.map toString box
+        b' = Just b
+        logic x = { s | generation <- GameOfLife.update b' x s.generation }
     in
-        Svg.Attributes.viewBox boxString
+        case u of
+            Toggle c -> 
+                if GameOfLife.contains c s.generation 
+                then logic (Remove c)
+                else logic (Add c)
+
+            Logic u' -> logic u'
+
+            Highlight c -> 
+                { s | highlight <- Just c }
 
 
-boundingBox : GameOfLife.Generation -> Maybe (List Int)
-boundingBox g =
+toSvgScene : Address GUIUpdate -> ClipBox -> GUIState -> Svg.Svg
+toSvgScene a b {generation, highlight} = 
     let
-        cells = GameOfLife.toCells g
+        boxSvg = lazy2 boxToSvg a b
+        genSvg = lazy2 generationToSvg a generation
+        highlightSvg = lazy2 highlightToSvg a highlight
     in
-        List.minimum cells `andThen` \(x,y) ->
-        List.maximum cells `andThen` \(x2,y2) ->
-        Nothing --Just [x, y, x2 - x, y2 - y]
+       Svg.svg [viewBox b] [boxSvg, genSvg, highlightSvg]
 
 
-enlarge : Float -> List Float -> List Float
-enlarge k [x,y,w,h] =
+generationToSvg : Address GUIUpdate -> Generation -> Svg.Svg
+generationToSvg a gen = 
     let
-        diff = k - 1
-    in
-        [x - diff * w / 2, y - diff * h / 2, w * diff, h * diff]
+        cells = GameOfLife.toCells gen
 
-pointify : GameOfLife.Cell -> Point.Point
+        highlight x = Highlight x |> Signal.message a
+
+        atts x = [ fill "black" , onMouseOver (highlight x)]
+    in
+       g [class "generation"] <| List.map (\x -> rect (pointify x) (atts x)) cells
+
+
+boxToSvg : Address GUIUpdate -> ClipBox -> Svg.Svg
+boxToSvg a b = 
+    let
+        pts = Box.points b 
+        
+        highlight x = Signal.message a (Highlight x)
+
+        atts x = [ fill "white" , onMouseOver (highlight x)]
+    in
+       g [class "box"] <| List.map (\x -> rect (pointify x) (atts x)) pts
+
+
+highlightToSvg : Address GUIUpdate -> Maybe Cell -> Svg.Svg
+highlightToSvg a h =
+    let
+        mpt = Maybe.map pointify h
+        toggle x = Toggle x |> Signal.message a 
+
+        svg = case h of
+            Nothing -> []
+            Just h' -> 
+                let 
+                    pt = pointify h' 
+                in 
+                   [rect pt [fill "red", onClick (toggle h')]]
+    in
+        g [class "highlight"] <| svg
+
+
+
+viewBox : Box.Box number -> Svg.Attribute
+viewBox box = Svg.Attributes.viewBox (Box.string box)
+
+
+pointify : Cell -> Point.Point
 pointify (x,y) = (toFloat x, toFloat y)
 
 
-pointifyAll : GameOfLife.Generation -> List Point.Point
+pointifyAll : Generation -> List Point.Point
 pointifyAll = List.map pointify << GameOfLife.toCells

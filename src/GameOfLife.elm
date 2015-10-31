@@ -1,6 +1,7 @@
 module GameOfLife where
 import Histogram exposing (Histogram, histogram, keysWithCount)
 import FunctionUtils exposing (iterate, ignore1)
+import Box exposing (Box)
 
 import Signal
 import List
@@ -11,6 +12,27 @@ import Set exposing (Set, diff, union, intersect)
 
 type alias Cell = (Int, Int)
 type alias Generation = Set Cell
+type alias ClipBox = Box Int
+
+
+type Update = Next | Add Cell | Remove Cell
+
+
+signal : Maybe ClipBox -> Generation -> Signal Update -> Signal Generation
+signal b g s = Signal.foldp (update b) g s
+
+
+contains = Set.member
+
+update : Maybe ClipBox -> Update -> Generation -> Generation
+update b u g = case u of
+    Next -> next b g
+    Add c -> Set.insert c g
+    Remove c -> Set.remove c g
+
+
+next : Maybe ClipBox -> Generation -> Generation
+next b g = generation (clip b g)
 
 
 fromCells : List Cell -> Generation
@@ -21,13 +43,21 @@ toCells : Generation -> List Cell
 toCells = Set.toList
 
 
-signal : Generation -> Signal a -> Signal Generation
-signal g s = Signal.foldp (ignore1 generation) g s
-
-
 generations : Int -> Generation -> Generation
 generations n g = iterate n generation g
 
+
+clip : Maybe ClipBox -> Generation -> Generation
+clip b = case b of
+    Nothing -> identity
+    Just b' -> clipped b'
+
+
+clipped : ClipBox -> Generation -> Generation
+clipped box g = filter (Box.contains box) g
+
+
+filter = Set.filter
 
 {-
 From wikipedia:

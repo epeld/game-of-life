@@ -5,6 +5,14 @@ type alias Point = (Float, Float)
 type alias Radians = Float
 
 
+x : Point -> Float
+x (a, _) = a
+
+
+y : Point -> Float
+y (_, b) = b
+
+
 string : List Point -> String
 string pts = join " " <| List.map show pts
 
