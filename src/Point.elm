@@ -12,7 +12,10 @@ string pts = join " " <| List.map show pts
 -- Split a full turn (2pi) into n parts
 splitTurn : Int -> List Radians
 splitTurn n = 
-    List.map (\x -> 2 * pi / toFloat n * toFloat x) [1..n]
+    let 
+        n' = toFloat n
+    in
+       List.map (\x -> 2 * pi / n' * toFloat x + pi / n') [1..n]
 
 
 -- Split a full turn (2pi) into (n+1) parts (where the last and first are the same!)

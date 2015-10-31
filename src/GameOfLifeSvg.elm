@@ -7,7 +7,7 @@ import String
 
 import Point
 import GameOfLife
-import Octagon exposing (octagon)
+import Polygon exposing (rect)
 
 
 signal : GameOfLife.Generation -> Signal a -> Signal Svg.Svg
@@ -22,9 +22,17 @@ toSvg : GameOfLife.Generation -> List Svg.Svg
 toSvg g = 
     let
         pts = pointifyAll g
-        oct x = octagon x [Svg.Attributes.class (String.append "cell" <| Point.string [x])]
+        svg x = rect x [cellClass x]
+        --svg x = polygon 8 x [Svg.Attributes.class (String.append "cell" <| Point.string [x])]
     in 
-        List.map oct pts
+        List.map svg pts
+
+cellClass : Point.Point -> Svg.Attribute
+cellClass x = 
+    let
+        name = String.append "cell" <| Point.string [x]
+    in
+        Svg.Attributes.class name
 
 
 viewBox g = 
