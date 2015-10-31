@@ -1,24 +1,60 @@
 module GameOfLifeSvg where
 
 import Svg
+import Svg.Attributes
+import Maybe exposing (andThen, withDefault)
+import String
 
 import Point
 import GameOfLife
-import Octagon
+import Octagon exposing (octagon)
 
 
-toSvg : List Cell -> List Svg.Svg
-toSvg cells = 
+signal : GameOfLife.Generation -> Signal a -> Signal Svg.Svg
+signal g s = Signal.map toSvgScene (GameOfLife.signal g s)
+
+
+toSvgScene : GameOfLife.Generation -> Svg.Svg
+toSvgScene g = Svg.svg [viewBox g] (toSvg g)
+
+
+toSvg : GameOfLife.Generation -> List Svg.Svg
+toSvg g = 
     let
-        pts = pointifyAll cells
-        oct x = octagon x attrs
+        pts = pointifyAll g
+        oct x = octagon x [Svg.Attributes.class (String.append "cell" <| Point.string [x])]
     in 
-        List.map oct pts attrs
+        List.map oct pts
 
+
+viewBox g = 
+    let
+        box = enlarge 4.2 <| List.map toFloat <| withDefault [0, 0, 10, 10] (boundingBox g) 
+        boxString = String.join " " <| List.map toString box
+    in
+        Svg.Attributes.viewBox boxString
+
+
+boundingBox : GameOfLife.Generation -> Maybe (List Int)
+boundingBox g =
+    let
+        cells = GameOfLife.toCells g
+    in
+        List.minimum cells `andThen` \(x,y) ->
+        List.maximum cells `andThen` \(x2,y2) ->
+        Nothing --Just [x, y, x2 - x, y2 - y]
+
+
+enlarge : Float -> List Float -> List Float
+enlarge k [x,y,w,h] =
+    let
+        diff = k - 1
+    in
+        [x - diff * w / 2, y - diff * h / 2, w * diff, h * diff]
 
 pointify : GameOfLife.Cell -> Point.Point
 pointify (x,y) = (toFloat x, toFloat y)
 
 
-pointifyAll : List GameOfLife.Cell -> List Point.Point
-pointifyAll = List.map pointify
+pointifyAll : GameOfLife.Generation -> List Point.Point
+pointifyAll = List.map pointify << GameOfLife.toCells
