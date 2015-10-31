@@ -16,4 +16,4 @@ initial = GameOfLife.fromCells [(3,2), (1,1), (2,1), (2,2), (1,0), (0,2)]
 bounds = Box.Box -15 -15 100 100
 
 
-main = GUI.signal bounds { generation = initial, highlight = Nothing }
+main = GUI.signal bounds { generation = initial, highlight = Nothing, running = False }

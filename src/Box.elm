@@ -43,6 +43,16 @@ points (Box x y w h) =
     [(i,j)]
 
 
+midx : Box number -> Float
+midx (Box x _ w _) = toFloat x + toFloat w / 2
+
+
+boxy : Box number -> number
+boxy (Box _ y _ _) = y
+
+boxy2 : Box number -> number
+boxy2 (Box _ y _ h) = y + h
+
 {-
 enlarge : Float -> List Float -> List Float
 enlarge k [x,y,w,h] =
