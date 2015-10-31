@@ -1,7 +1,8 @@
 module GameOfLife where
 import Histogram exposing (Histogram, histogram, occurances)
-import FunctionUtils exposing (iterate)
+import FunctionUtils exposing (iterate, ignore1)
 
+import Signal
 import List
 import List.Extra exposing (andThen)
 import Maybe
@@ -12,13 +13,16 @@ type alias Cell = (Int, Int)
 type alias Generation = Set Cell
 
 
+cells : List Cell -> Generation
+cells = Set.fromList
+
+
+signal : Generation -> Signal a -> Signal Generation
+signal g s = Signal.foldp (ignore1 generation) g s
+
+
 generations : Int -> Generation -> Generation
 generations n g = iterate n generation g
-
-
--- Utility function
-generationList : List Cell -> List Cell
-generationList = Set.toList << generation << Set.fromList
 
 
 generation : Generation -> Generation
