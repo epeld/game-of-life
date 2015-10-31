@@ -1,5 +1,6 @@
 module GameOfLife where
 import Histogram exposing (Histogram, histogram, occurances)
+import FunctionUtils exposing (iterate)
 
 import List
 import List.Extra exposing (andThen)
@@ -8,14 +9,20 @@ import Set exposing (Set)
 
 
 type alias Cell = (Int, Int)
+type alias Generation = Set Cell
+
+
+generations : Int -> Generation -> Generation
+generations n g = iterate n generation g
+
 
 -- Utility function
-genList : List Cell -> List Cell
-genList xs = Set.toList <| gen <| Set.fromList xs
+generationList : List Cell -> List Cell
+generationList = Set.toList << generation << Set.fromList
 
 
-gen : Set Cell -> Set Cell
-gen xs = 
+generation : Generation -> Generation
+generation xs = 
     let 
         remain = Set.filter (\x -> occurances x hist == 2) candidates
         born = Set.filter (\x -> occurances x hist > 2) candidates
