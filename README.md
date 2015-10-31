@@ -5,6 +5,7 @@ Try it!
 
 Type:
 > elm reactor
+
 ..and navigate to src/Main.elm
 
 or do
